@@ -1,4 +1,3 @@
-
 class SMOItemData:
     # Moons
     cap_power_moon = 'Cap Power Moon'

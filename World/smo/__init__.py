@@ -590,17 +590,10 @@ class SMOWorld(World):
                 if ability not in [SMOItemData.jump, SMOItemData.cap_throw]:
                     pool.append(ability)
                 else:
-<<<<<<< HEAD
                     self.push_precollected(self.create_item(ability, None))
             else:
                 # Push all captures into inventory when disabled
                 self.push_precollected(self.create_item(ability, None))
-=======
-                    self.push_precollected(self.create_item(ability))
-            else:
-                # Push all captures into inventory when disabled
-                self.push_precollected(self.create_item(ability))
->>>>>>> 559d7d8 (Removed unnecessary code from Rules.py, added examples to RuleData.py, Added 'cappy' item group to __init__.py)
         #endregion Abilities
 
         for difficulty in range(self.options.trick_logic.value):
