@@ -155,23 +155,24 @@ class SMOWorld(World):
     # Items can be grouped using their names to allow easy checking if any item
     # from that group has been collected. Group names can also be used for !hint
     item_name_groups = {
-        "Cap Moons": [SMOItemData.cap_power_moon],
-        "Cascade Moons": [SMOItemData.cascade_power_moon, SMOItemData.cascade_story_moon, SMOItemData.cascade_multi_moon],
-        "Sand Moons": [SMOItemData.sand_power_moon, SMOItemData.sand_story_moon, SMOItemData.sand_multi_moon],
-        "Lake Moons": [SMOItemData.lake_power_moon, SMOItemData.lake_multi_moon],
-        "Wooded Moons": [SMOItemData.wooded_power_moon, SMOItemData.wooded_story_moon, SMOItemData.wooded_multi_moon],
-        "Cloud Moons": [SMOItemData.cloud_power_moon],
-        "Lost Moons": [SMOItemData.lost_power_moon],
-        "Metro Moons": [SMOItemData.metro_power_moon, SMOItemData.metro_story_moon, SMOItemData.metro_multi_moon],
-        "Snow Moons": [SMOItemData.snow_power_moon, SMOItemData.snow_story_moon, SMOItemData.snow_multi_moon],
-        "Seaside Moons": [SMOItemData.seaside_power_moon, SMOItemData.seaside_story_moon, SMOItemData.seaside_multi_moon],
-        "Luncheon Moons": [SMOItemData.luncheon_power_moon, SMOItemData.luncheon_story_moon, SMOItemData.luncheon_multi_moon],
-        "Ruined Moons": [SMOItemData.ruined_power_moon, SMOItemData.ruined_multi_moon],
-        "Bowser Moons": [SMOItemData.bowser_power_moon, SMOItemData.bowser_story_moon, SMOItemData.bowser_multi_moon],
-        "Moon Moons": [SMOItemData.moon_power_moon],
-        "Mushroom Moons": [SMOItemData.power_star, SMOItemData.mushroom_multi_moon],
-        "Dark Moons": [SMOItemData.dark_side_power_moon, SMOItemData.dark_side_multi_moon],
-        "Darker Moons": [SMOItemData.darker_side_multi_moon]
+        "Cap Moons": {SMOItemData.cap_power_moon},
+        "Cascade Moons": {SMOItemData.cascade_power_moon, SMOItemData.cascade_story_moon, SMOItemData.cascade_multi_moon},
+        "Sand Moons": {SMOItemData.sand_power_moon, SMOItemData.sand_story_moon, SMOItemData.sand_multi_moon},
+        "Lake Moons": {SMOItemData.lake_power_moon, SMOItemData.lake_multi_moon},
+        "Wooded Moons": {SMOItemData.wooded_power_moon, SMOItemData.wooded_story_moon, SMOItemData.wooded_multi_moon},
+        "Cloud Moons": {SMOItemData.cloud_power_moon},
+        "Lost Moons": {SMOItemData.lost_power_moon},
+        "Metro Moons": {SMOItemData.metro_power_moon, SMOItemData.metro_story_moon, SMOItemData.metro_multi_moon},
+        "Snow Moons": {SMOItemData.snow_power_moon, SMOItemData.snow_story_moon, SMOItemData.snow_multi_moon},
+        "Seaside Moons": {SMOItemData.seaside_power_moon, SMOItemData.seaside_story_moon, SMOItemData.seaside_multi_moon},
+        "Luncheon Moons": {SMOItemData.luncheon_power_moon, SMOItemData.luncheon_story_moon, SMOItemData.luncheon_multi_moon},
+        "Ruined Moons": {SMOItemData.ruined_power_moon, SMOItemData.ruined_multi_moon},
+        "Bowser Moons": {SMOItemData.bowser_power_moon, SMOItemData.bowser_story_moon, SMOItemData.bowser_multi_moon},
+        "Moon Moons": {SMOItemData.moon_power_moon},
+        "Mushroom Moons": {SMOItemData.power_star, SMOItemData.mushroom_multi_moon},
+        "Dark Moons": {SMOItemData.dark_side_power_moon, SMOItemData.dark_side_multi_moon},
+        "Darker Moons": {SMOItemData.darker_side_multi_moon},
+        "Cappy": {SMOItemData.cap_throw, SMOItemData.up_throw, SMOItemData.down_throw, SMOItemData.spin_throw}
     }
 
 
