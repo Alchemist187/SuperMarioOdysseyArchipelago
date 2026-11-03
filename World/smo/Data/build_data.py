@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+import traceback
 
 default_progression = [0, 1, 2, 3]
 scenario_progression: dict[str, list[int]] = {
@@ -92,55 +93,43 @@ def create_rule(reqs: list[list[str]], token_names: dict[str, str], captures: li
         if tokens[0] == "impossible":
             return "False_()"
 
-        scenario_rule: str | None = None
-        scenarios: str | None = next(iter([
-            m.group(1)
-            for token in tokens
-            if (m := re.search(r"StoryProgress_(.+)", token))
-        ]), None)
-        if scenarios:
-            scenario_list = [int(scenario) for scenario in scenarios.strip("[]").split(",") if int(scenario) in scenario_progression[kingdom]]
 
-            scenario_rule = f"HasStoryProgress('{kingdom}', {scenario_list})" if scenario_list != scenario_progression[kingdom] else None
-        min_hp_rule: str | None = next(iter([
-            f"HasHP({int(m.group(1))})"
-            for token in tokens
-            if (m := re.search(r"MinHp(\d)", token))
-        ]), None)
+        special_rules: list[str] = []
+        normal_tokens: list[str] = []
+        for token in tokens:
+            if m := re.search(r"StoryProgress_(.+)", token):
+                scenario_list = [int(scenario) for scenario in m.group(1).strip("[]").split(",") if int(scenario) in scenario_progression[kingdom]]
+                if scenario_list != scenario_progression[kingdom]:
+                    special_rules.append(f"HasStoryProgress('{kingdom}', {scenario_list})")
+                    scenario_list = []
+            elif m := re.search(r"MinHp(\d)", token):
+                special_rules.append(f"Has(items.life_upgrade, {int(m.group(1))-1})")
+            elif re.search("AnyThrow", token):
+                special_rules.append("HasAny(*cappy)")
+            elif m := re.search("@(.+)|KingdomAccess_(.+)", token):
+                if m.group(1):
+                    region_id = region_names.get(m.group(1), "")
+                else:
+                    region_id = f"{m.group(2).lower()}_{'side' if (m.group(2)).startswith('Dark') else 'kingdom'}_default_start"
+                special_rules.append(f"CanReachRegion(regions.region_names['{region_id}'])")
+            elif token in captures:
+                special_rules.append(f"CanCapture(tokens.{token_names[token]})")
+            else:
+                normal_tokens.append(token)
 
-        kingdom_access_rules: list[str] = [
-            f"CanReachRegion(regions.region_names['{region_names.get(token.replace('@', ''), '')}'])"
-            for token in tokens
-            if token.startswith("@")
-        ]
-        capture_rules: list[str] = [
-            f"CanCapture(tokens.{token_names[token]})"
-            for token in tokens
-            if (token in captures)
-        ]
-
-        if kingdom_access_rules or capture_rules or scenarios or min_hp_rule:
-            if scenario_rule:
-                scenario_list = []
-            tokens = [
-                token for token in tokens
-                if not re.search(r"@|StoryProgress_|MinHp", token) and token not in captures
-                ]
-
-        method = ""
-        if tokens:
-            method += f"{'HasAll(' if len(tokens) > 1 else 'Has('}{', '.join([
+        method = None
+        if normal_tokens:
+            method = f"{'HasAll(' if len(normal_tokens) > 1 else 'Has('}{', '.join([
                 f'tokens.{token_names[token]}'
-                for token in tokens
+                for token in normal_tokens
             ])})"
 
-        if kingdom_access_rules or capture_rules or scenario_rule or min_hp_rule:
-            rules = kingdom_access_rules + capture_rules + ([scenario_rule] if scenario_rule else []) + ([min_hp_rule] if min_hp_rule else []) + ([method] if method else [])
-            if len(rules) > 1:
-                method = f"And({','.join(rules)})"
-            else:
-                method = rules[0]
+        if len(special_rules)+(bool(method)) > 1:
+            method = f"And({','.join(special_rules + ([method] if method else []))})"
+        elif special_rules:
+            method = special_rules[0]
 
+        assert method is not None
         methods.append(method)
     if len(reqs) > 1:
         method_str = ",\n".join(methods)
@@ -155,7 +144,7 @@ def create_rule(reqs: list[list[str]], token_names: dict[str, str], captures: li
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate RuleData.py")
+    parser = argparse.ArgumentParser(description="Generate Logic Data")
     parser.add_argument("--input", type=Path, default=Path("templates"))
     parser.add_argument("--output", type=Path, default=Path("generated"))
     args = parser.parse_args()
@@ -173,24 +162,33 @@ def main() -> int:
     }
     captures: list[str] = []
     for row in token_data:
-        token_names[row["token"]] = format_name(row["display_name"])
-        if row["token_type"] == "capture":
-            captures.append(row["token"])
+        if not re.search(r"MoonRockActive|WorldPeace|KingdomAccess", row["token"]):
+            token_names[row["token"]] = format_name(row["display_name"])
+            if row["token_type"] == "capture":
+                captures.append(row["token"])
     # coverage for inconsistencies between secret dev and our item names
     token_names["SingleJump"] = "jump"
     token_names["trex"] = "t_rex"
 
     region_names: dict[str, str] = {}
     for row in node_data:
-        region_names[row["node_id"]] = format_name(f"{row['stage_display_name']} {row['display_name']}", True)
+        region_name = row["display_name"]
+        kingdom_name = f"{row['stage_display_name']} "
+        if region_name.startswith(kingdom_name):
+            kingdom_name = ""
+
+        region_names[row["node_id"]] = format_name(f"{kingdom_name}{region_name}", True)
     region_moons: dict[str, dict[str, int]] = {}
 
-    output: list[str] = []
-    output.append("from rule_builder.rules import *\n")
-    output.append("from .TokenNames import SMOTokenNames as tokens\n")
-    output.append("from .RegionData import SMORegionData as regions\n")
-    output.append("from ....Rules import CanCapture, HasStoryProgress\n")
-    output.append("from ...LocationData import SMOLocationData as loc")
+    output: list[str] = [
+        "# Generated by build_data.py. DO NOT EDIT",
+        "from rule_builder.rules import *",
+        "from .TokenNames import SMOTokenNames as tokens",
+        "from .RegionData import SMORegionData as regions",
+        "from ...Rules import CanCapture, HasStoryProgress",
+        "from ..LocationData import SMOLocationData as loc",
+        "from ..ItemData import SMOItemData as items",
+    ]
     output.append("\nmoon_rule_data : dict[str, Rule] = {\n")
     moons: list[str] = []
     moon_ids: dict[str, int] = {}
@@ -212,7 +210,7 @@ def main() -> int:
         try:
             rule = create_rule(reqs, token_names, captures, region_names, scenario_list, format_name(moon.get("kingdom", "")).split("_")[0])
         except Exception as e:
-            print(e)
+            print(traceback.print_exc(e))
             print(f"WARNING: Moon {moon.get('moon_name', '')} has invalid logic. Will assume free")
             rule = "True_()"
         moon_data += rule
@@ -223,7 +221,7 @@ def main() -> int:
 
     args.output.mkdir(parents=True, exist_ok=True)
 
-    (args.output / "RuleData.py").write_text("".join(output), encoding="utf-8", newline="\n")
+    (args.output / "RuleData.py").write_text("\n".join(output), encoding="utf-8", newline="\n")
     try:
         subprocess.run(
             ["ruff", "format", str(args.output / "RuleData.py")],
@@ -234,27 +232,31 @@ def main() -> int:
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-    token_names_output = "class SMOTokenNames:"
+    token_names_output = "# Generated by build_data.py. DO NOT EDIT\nclass SMOTokenNames:"
     for name in token_names.values():
         token_names_output += f"\n\t{name} = \"{name.replace('_', ' ').title()}\""
 
     (args.output / "TokenNames.py").write_text(token_names_output, encoding="utf-8", newline="\n")
 
-    output = ["class SMORegionData:", "region_names: dict[str, str] = {"]
-
+    output = [
+        "# Generated by build_data.py. DO NOT EDIT",
+        "from ..LocationData import SMOLocationData as loc",
+        "class SMORegionData:",
+    ]
+    output.append("\tregion_names: dict[str, str] = {")
     for name in region_names.values():
-        output.append(f"\"{name}\": \"{name.replace('_', ' ').title()}\",")
-    output.append("}\n")
+        output.append(f"\t\t\"{name}\": \"{name.replace('_', ' ').title()}\",")
+    output.append("\t}\n")
 
     output.append("region_moons: dict[str, dict[str, int]] = {")
     for (region_name, moon_ids) in region_moons.items():
-        output.append(f'region_names["{region_name}"]: {{')
+        output.append(f'\t\tregion_names["{region_name}"]: {{')
         for (moon, id) in moon_ids.items():
-            output.append(f"loc.{moon}: {id},")
-        output.append("},")
-    output.append("}")
+            output.append(f"\t\t\tloc.{moon}: {id},")
+        output.append("\t\t},")
+    output.append("\t}")
 
-    (args.output / "RegionData.py").write_text(f"from ...LocationData import SMOLocationData as loc\n{'\n\t'.join(output)}", encoding="utf-8", newline="\n")
+    (args.output / "RegionData.py").write_text("\n".join(output), encoding="utf-8", newline="\n")
     try:
         subprocess.run(
             ["ruff", "format", str(args.output / "RegionData.py")],
@@ -265,10 +267,13 @@ def main() -> int:
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-    output = ["from rule_builder.rules import *\n"]
-    output.append("from .TokenNames import SMOTokenNames as tokens\n")
-    output.append("from .RegionData import SMORegionData as regions\n")
-    output.append("from ....Rules import CanCapture, HasStoryProgress\n")
+    output = [
+        "# Generated by build_data.py. DO NOT EDIT",
+        "from rule_builder.rules import *",
+        "from .TokenNames import SMOTokenNames as tokens",
+        "from .RegionData import SMORegionData as regions",
+        "from ...Rules import CanCapture, HasStoryProgress"
+    ]
     output.append("\nregion_connection_data : dict[str, dict[str, Rule]] = {\n")
     region_connection_data: dict[str, dict[str, str]] = {}
     for connection in connection_rows:
@@ -302,7 +307,7 @@ def main() -> int:
 
     args.output.mkdir(parents=True, exist_ok=True)
 
-    (args.output / "ConnectionData.py").write_text("".join(output), encoding="utf-8", newline="\n")
+    (args.output / "ConnectionData.py").write_text("\n".join(output), encoding="utf-8", newline="\n")
     try:
         subprocess.run(
             ["ruff", "format", str(args.output / "ConnectionData.py")],
@@ -313,7 +318,10 @@ def main() -> int:
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-    output = ["from .RegionData import SMORegionData as regions\n"]
+    output = [
+        "# Generated by build_data.py. DO NOT EDIT",
+        "from .RegionData import SMORegionData as regions"
+    ]
     output.append("\nentrance_data : dict[str, str] = {\n")
     for entrance in entrance_rows:
         node_ids = [region_names.get(entrance.get(column_id, ""), "") for column_id in ["home_in_node_id", "home_out_node_id", "sub_near_node_id", "sub_far_node_id"]]
@@ -327,7 +335,7 @@ def main() -> int:
 
     args.output.mkdir(parents=True, exist_ok=True)
 
-    (args.output / "EntranceData.py").write_text("".join(output), encoding="utf-8", newline="\n")
+    (args.output / "EntranceData.py").write_text("\n".join(output), encoding="utf-8", newline="\n")
     try:
         subprocess.run(
             ["ruff", "format", str(args.output / "EntranceData.py")],

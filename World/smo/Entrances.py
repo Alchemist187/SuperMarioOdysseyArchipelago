@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Optional
 
 from BaseClasses import Entrance, EntranceType, Region
@@ -11,8 +11,13 @@ from .Data.EntranceData import SMOEntranceData
 from .Data.ItemData import SMOItemData
 from .Data.LocationData import SMOLocationData
 from .Data.RegionData import SMORegion
-from .Data.RuleData import SMOEntranceDataType, cappy, CanCapture
+from .Rules import cappy, CanCapture
 
+class SMOEntranceDataType(StrEnum):
+    ENTER = "Entrance"
+    EXIT = "End"
+    UNIQUE_EXIT = "Unique Exit End"
+    START = "Beginning"
 
 def get_multi_entrance_type(entrance_name: str, internal_name : str, internal_stage: str, types: tuple[str, str, str] = ("entrance", "exit", "")) -> str:
     special_cases = ["regional", "coin", "shop", "employee"]

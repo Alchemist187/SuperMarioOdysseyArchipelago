@@ -6,14 +6,12 @@ from typing import Any, override
 from BaseClasses import CollectionState, Location
 from rule_builder.field_resolvers import FieldResolver, resolve_field
 from rule_builder.options import OptionFilter
-from worlds.generic.Rules import set_rule, add_rule
+from worlds.generic.Rules import set_rule
 from rule_builder.rules import Rule, TWorld, True_
 from . import SMOWorld, regional_coin_table, regional_coin_groups, regional_coin_groups_table
 from .Data.RegionData import SMORegion
 from .Data.ItemData import SMOItemData
-from .Data.EntranceData import SMOEntranceData
-from .Data.LocationData import SMOLocationData
-from .Data.RuleData import SMOEntranceDataType, SMOKingdoms, regional_rule_data, \
+from .Data.generated.RuleData import regional_rule_data, \
     moon_rule_data
 from .Locations import shop_location_costs
 from .Items import capture_items

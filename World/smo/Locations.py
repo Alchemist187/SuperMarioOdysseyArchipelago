@@ -5708,7 +5708,7 @@ multi_moons = {
     SMOLocationData.blowup_at_mount_volbono_rematch,
     SMOLocationData.rumble_in_crumbleden_rematch],
     SMOKingdoms.DARK : [SMOLocationData.arrival_at_rabbit_ridge],
-    SMOKingdoms.DARKER : [SMOLocationData.a_long_journeys_end]
+    SMOKingdoms.DARKER : [SMOLocationData.long_journeys_end]
 }
 
 story_moons = {
@@ -5745,5 +5745,5 @@ goals_table = {
     Goal.option_luncheon : SMOLocationData.cookatiel_showdown,
     Goal.option_moon : SMOLocationData.beat_the_game,
     Goal.option_dark : SMOLocationData.arrival_at_rabbit_ridge,
-    Goal.option_darker : SMOLocationData.a_long_journeys_end
+    Goal.option_darker : SMOLocationData.long_journeys_end
 }
